@@ -573,6 +573,11 @@ def test_retrieval_scope_filters_real_store_associations_in_sql(
         assert other_relation not in scope.relation_ids
         assert {row["hash"] for row in association_rows["relations"]} == {current_relation}
         assert {row["entity_hash"] for row in association_rows["entities"]} == {current_entity}
+        assert any(
+            "(+e.is_deleted IS NULL OR +e.is_deleted = 0)" in statement
+            for statement in statements
+            if "FROM paragraph_entities pe" in statement
+        )
         association_queries = [
             statement
             for statement in statements
