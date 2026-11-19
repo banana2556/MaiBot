@@ -674,6 +674,28 @@ class BaseMaisakaReplyGenerator(ChatReplyPromptMixin):
 
         return not cls._is_replyer_filtered_history_message(message)
 
+    @staticmethod
+    def _keep_plugin_selected_history(
+        history: List[LLMContextMessage], keep_ids: Any, reply_message: Optional[SessionMessage]
+    ) -> List[LLMContextMessage]:
+        """插件可在 before_request 的 reply_tool_args["_keep_message_ids"] 指定只看哪些消息（原始 ID 或短别名）。
+
+        在渲染、表达选择、识图和分配图片配额之前过滤，图片名额只给留下的消息；回复目标始终保留。
+        """
+
+        if not isinstance(keep_ids, list) or not keep_ids:
+            return history
+        keep = {str(message_id) for message_id in keep_ids}
+        if reply_message is not None:
+            keep.add(str(reply_message.message_id))
+        return [
+            message
+            for message in history
+            if not isinstance(message, SessionBackedMessage)
+            or message.message_id in keep
+            or to_display_message_id(message.message_id) in keep
+        ]
+
     def _persist_reply_preview(
         self, result: ReplyGenerationResult, *, stream_id: Optional[str], reply_reason: str
     ) -> None:
@@ -956,6 +978,9 @@ class BaseMaisakaReplyGenerator(ChatReplyPromptMixin):
                     if reply_history is None:
                         reply_history = await reply_history_builder()
                     attempt_history = reply_history
+                attempt_history = self._keep_plugin_selected_history(
+                    attempt_history, dict(reply_tool_args_for_attempt).get("_keep_message_ids"), reply_message
+                )
                 attempt_expression_habits = ""
                 if active_prompt_profile != "mai_replier":
                     if reply_context is None:

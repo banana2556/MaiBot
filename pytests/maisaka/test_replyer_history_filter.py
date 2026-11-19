@@ -9,6 +9,7 @@ from src.chat.replyer.maisaka_generator_base import BaseMaisakaReplyGenerator
 from src.common.data_models.message_component_data_model import MessageSequence, TextComponent
 from src.llm_models.payload_content.context_item import ContextItemBuilder, RoleType, get_item_text
 from src.maisaka.context.compaction import ContextSummaryMessage
+from src.maisaka.context.message_id_alias import to_display_message_id
 from src.maisaka.context.messages import (
     ComplexSessionMessage,
     ContentContextMessage,
@@ -132,3 +133,25 @@ def test_request_history_excludes_internal_messages(monkeypatch, mai_replier: bo
     assert history[3].source_kind == "subagent_result"
     assert len(history) == 19
     assert all(message.original_message.is_notify for message in history[-3:])
+
+
+def test_plugin_selected_history_keeps_listed_ids_aliases_and_target() -> None:
+    timestamp = datetime(2026, 11, 19, 9)
+    long_id = "1528559076211167304"
+
+    def message(message_id: str) -> SessionBackedMessage:
+        original = SessionMessage(message_id=message_id, timestamp=timestamp, platform="test")
+        return SessionBackedMessage(
+            raw_message=MessageSequence([TextComponent(message_id)]), visible_text=message_id,
+            timestamp=timestamp, message_id=message_id, original_message=original, source_kind="user",
+        )
+
+    history = [message("1"), message(long_id), message("3"), message("4")]
+    target = history[3].original_message
+    keep = BaseMaisakaReplyGenerator._keep_plugin_selected_history
+
+    kept = keep(history, ["1", to_display_message_id(long_id)], target)
+    assert [item.message_id for item in kept] == ["1", long_id, "4"]
+    # 没给清单或格式不对时不过滤
+    assert keep(history, None, target) == history
+    assert keep(history, "1", target) == history
