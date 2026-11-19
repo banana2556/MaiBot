@@ -130,8 +130,16 @@ def match_jargons_for_context(
 ) -> list[_JargonMatch]:
     """返回当前上下文机械命中的黑话，按权重取前若干条。"""
 
+    return match_jargons_for_texts(
+        session_id=session_id, texts=_extract_other_user_texts(context_messages), limit=limit
+    )
+
+
+def match_jargons_for_texts(*, session_id: str, texts: Sequence[str], limit: int = MAX_JARGON_REFERENCE_MATCHES) -> list[_JargonMatch]:
+    """返回给定文本（按时间顺序）机械命中的黑话，按权重取前若干条；插件可只传一段话题的文本。"""
+
     normalized_limit = max(1, int(limit))
-    user_texts = _extract_other_user_texts(context_messages)
+    user_texts = [str(text) for text in texts if str(text or "").strip()]
     if not user_texts:
         return []
 

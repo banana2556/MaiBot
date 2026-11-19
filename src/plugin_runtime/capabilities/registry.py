@@ -85,6 +85,8 @@ def register_capability_impls(manager: "PluginRuntimeManager", supervisor: "Plug
     _register("person.get_id", manager._cap_person_get_id)
     _register("person.get_value", manager._cap_person_get_value)
     _register("person.get_id_by_name", manager._cap_person_get_id_by_name)
+    _register("person.get_profile", manager._cap_person_get_profile)
+    _register("jargon.match", manager._cap_jargon_match)
 
     _register("emoji.get_by_description", manager._cap_emoji_get_by_description)
     _register("emoji.get_random", manager._cap_emoji_get_random)

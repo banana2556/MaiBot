@@ -610,6 +610,37 @@ class RuntimeDataCapabilityMixin:
             logger.error(f"[cap.person.get_value] 执行失败: {e}", exc_info=True)
             return {"success": False, "error": str(e)}
 
+    async def _cap_person_get_profile(self, plugin_id: str, capability: str, args: Dict[str, Any]) -> Any:
+        """人物画像（与内置 query_person_profile 相同来源）：摘要与特征。"""
+        person_id = str(args.get("person_id", "") or "").strip()
+        if not person_id:
+            return {"success": False, "error": "缺少必要参数 person_id"}
+        try:
+            from src.services.memory_service import memory_service
+
+            profile = await memory_service.get_person_profile(
+                person_id, chat_id=str(args.get("chat_id", "") or "").strip(), limit=int(args.get("limit", 10) or 10)
+            )
+            return {"success": True, "summary": profile.summary, "traits": list(profile.traits)}
+        except Exception as e:
+            logger.error(f"[cap.person.get_profile] 执行失败: {e}", exc_info=True)
+            return {"success": False, "error": str(e)}
+
+    async def _cap_jargon_match(self, plugin_id: str, capability: str, args: Dict[str, Any]) -> Any:
+        """给定文本里机械命中的黑话（与 Planner 黑话参考相同的词库与范围）：[{content, meaning}]。"""
+        session_id = str(args.get("session_id", "") or "").strip()
+        texts = args.get("texts")
+        if not session_id or not isinstance(texts, list):
+            return {"success": False, "error": "缺少必要参数 session_id 或 texts（列表）"}
+        try:
+            from src.maisaka.jargon_context_matcher import match_jargons_for_texts
+
+            matches = match_jargons_for_texts(session_id=session_id, texts=texts, limit=int(args.get("limit", 10) or 10))
+            return {"success": True, "jargons": [{"content": item.content, "meaning": item.meaning} for item in matches]}
+        except Exception as e:
+            logger.error(f"[cap.jargon.match] 执行失败: {e}", exc_info=True)
+            return {"success": False, "error": str(e)}
+
     async def _cap_person_get_id_by_name(self, plugin_id: str, capability: str, args: Dict[str, Any]) -> Any:
         from src.person_info.person_info import Person
 
