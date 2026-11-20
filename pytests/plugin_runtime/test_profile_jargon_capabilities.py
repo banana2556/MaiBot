@@ -35,3 +35,24 @@ async def test_jargon_match_only_looks_at_the_given_texts(monkeypatch) -> None:
     result = await capability._cap_jargon_match("p", "jargon.match", {"session_id": "s1", "texts": ["買房要打高難嗎"]})
     assert result == {"success": True, "jargons": [{"content": "高難", "meaning": "高难度副本"}]}
     assert (await capability._cap_jargon_match("p", "jargon.match", {"session_id": "s1"}))["success"] is False
+
+
+@pytest.mark.asyncio
+async def test_image_get_description_reads_the_cached_description_only(monkeypatch) -> None:
+    from src.chat.image_system import image_manager as image_module
+
+    asked = []
+
+    def cached(image_hash):
+        asked.append(image_hash)
+        return "一隻貓坐在鍵盤上" if image_hash == "h1" else ""
+
+    monkeypatch.setattr(image_module.image_manager, "get_cached_image_description", cached)
+    capability = RuntimeDataCapabilityMixin()
+    assert await capability._cap_image_get_description("p", "image.get_description", {"image_hash": "h1"}) == {
+        "success": True,
+        "description": "一隻貓坐在鍵盤上",
+    }
+    assert (await capability._cap_image_get_description("p", "image.get_description", {"image_hash": "h2"}))["description"] == ""
+    assert (await capability._cap_image_get_description("p", "image.get_description", {}))["success"] is False
+    assert asked == ["h1", "h2"]

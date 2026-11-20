@@ -641,6 +641,19 @@ class RuntimeDataCapabilityMixin:
             logger.error(f"[cap.jargon.match] 执行失败: {e}", exc_info=True)
             return {"success": False, "error": str(e)}
 
+    async def _cap_image_get_description(self, plugin_id: str, capability: str, args: Dict[str, Any]) -> Any:
+        """已经识别好的图片描述（按图片字节的 sha256 查）；还没识别完时 description 为空，不会另外触发识图。"""
+        image_hash = str(args.get("image_hash", "") or "").strip()
+        if not image_hash:
+            return {"success": False, "error": "缺少必要参数 image_hash"}
+        try:
+            from src.chat.image_system.image_manager import image_manager
+
+            return {"success": True, "description": image_manager.get_cached_image_description(image_hash)}
+        except Exception as e:
+            logger.error(f"[cap.image.get_description] 执行失败: {e}", exc_info=True)
+            return {"success": False, "error": str(e)}
+
     async def _cap_person_get_id_by_name(self, plugin_id: str, capability: str, args: Dict[str, Any]) -> Any:
         from src.person_info.person_info import Person
 
