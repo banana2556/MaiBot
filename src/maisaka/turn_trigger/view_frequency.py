@@ -19,7 +19,7 @@ class ViewFrequencyController:
         if external_frequency == 0:
             return 0.0
         if self.phase == "decay":
-            return 1.0
+            return min(external_frequency, self.internal_frequency)
         if self.phase == "recovery":
             return external_frequency * self.recovery_rounds / RECOVERY_ROUNDS
         return external_frequency

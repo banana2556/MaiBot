@@ -176,9 +176,9 @@ class GroupTurnScheduler(MessageTurnScheduler):
                         self.accepted_wait_started_at = runtime._pending_wait_started_at
                         runtime._cancel_wait_timeout_task()
                     runtime._enqueue_message_turn()
-                    return
-                # 同一截止点只判一次；仍然静默则预测下一个消息时刻，继续给恢复期推进机会。
-                deadline = time.time() + interval
+                else:
+                    self._silence_handled_at = received_at
+                return
         except asyncio.CancelledError:
             return
         finally:

@@ -16,13 +16,22 @@ from src.maisaka.turn_trigger.view_frequency import (
 )
 
 
+def test_low_external_frequency_stays_a_cap_after_a_planner_turn() -> None:
+    controller = ViewFrequencyController()
+    controller.activate(0.064)
+    assert controller.probability(0.064) <= 0.064
+    assert not controller.decide(0.064, 0.07)
+    controller.record_planner_run()
+    assert controller.probability(0.064) <= 0.064
+
+
 @pytest.mark.parametrize("frequency,runs", [(0.3, 5), (0.5, 8), (0.7, 12), (1, 16)])
 def test_decay_stops_at_budget_and_does_not_reset(frequency: float, runs: int) -> None:
     controller = ViewFrequencyController()
-    assert controller.probability(frequency) == frequency
+    assert controller.probability(frequency) <= frequency
     controller.activate(frequency)
     for index in range(runs):
-        assert controller.probability(frequency) == 1
+        assert controller.probability(frequency) <= frequency
         controller.activate(frequency)
         assert controller.record_planner_run() is (index == runs - 1)
     assert controller.phase == "recovery"
@@ -113,10 +122,34 @@ async def test_silence_is_sampled_and_rejection_advances_recovery(monkeypatch: p
     monkeypatch.setattr("src.maisaka.scenes.group.scheduling.time.time", lambda: 120.0)
     monkeypatch.setattr("src.maisaka.scenes.group.scheduling.random.random", lambda: 0.0)
     await scheduler._check_silence(10.0)
-    assert len(sleeps) == 2  # 第一轮概率为 0；恢复后第二轮才允许放行。
-    runtime._enqueue_message_turn.assert_called_once()
-    assert scheduler.consume_silence_trigger()
+    assert len(sleeps) == 1
+    runtime._enqueue_message_turn.assert_not_called()
     assert not scheduler.consume_silence_trigger()
+    assert not scheduler.consume_silence_trigger()
+
+
+@pytest.mark.asyncio
+async def test_silence_rejection_does_not_retry_the_same_message(monkeypatch: pytest.MonkeyPatch) -> None:
+    scheduler = make_scheduler()
+    runtime = scheduler._runtime
+    runtime._running = True
+    runtime._last_message_received_at = 100.0
+    runtime._focus_group = None
+    runtime._agent_state = "stop"
+    runtime._STATE_RUNNING = "running"
+    runtime._STATE_WAIT = "wait"
+    runtime._message_turn_scheduled = False
+    runtime._is_reply_frequency_silent = lambda: False
+    runtime._get_message_quiet_period_remaining_seconds = lambda: 0
+    runtime._get_effective_reply_frequency = lambda: 0.064
+    runtime._enqueue_message_turn = Mock()
+    monkeypatch.setattr("src.maisaka.scenes.group.scheduling.asyncio.sleep", AsyncMock())
+    monkeypatch.setattr("src.maisaka.scenes.group.scheduling.time.time", lambda: 120.0)
+    draw = Mock(return_value=0.99)
+    monkeypatch.setattr("src.maisaka.scenes.group.scheduling.random.random", draw)
+    await asyncio.wait_for(scheduler._check_silence(10.0), timeout=1)
+    draw.assert_called_once()
+    runtime._enqueue_message_turn.assert_not_called()
     assert scheduler._silence_handled_at == 100.0
 
 
