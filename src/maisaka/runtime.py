@@ -1505,30 +1505,8 @@ class MaisakaHeartFlowChatting(MaisakaRuntimeDisplayMixin):
         ]
 
     def build_deferred_tools_reminder(self) -> str:
-        """构造供 planner 使用的 deferred tools 提示消息。"""
-
-        # 工具定义在搜索结果中加载，目录不随激活改变。
-        deferred_tool_specs = list(self.deferred_tool_specs_by_name.values())
-        if not deferred_tool_specs:
-            return ""
-
-        tool_lines: list[str] = []
-        for index, tool_spec in enumerate(deferred_tool_specs, start=1):
-            tool_name = tool_spec.name.strip()
-            # 只列第一句：完整描述（含给 tool_search 比对的关键词）搜索时才用，每轮都塞进系统提示词太占 token
-            tool_description = re.split(r"(?<=[。！？])|(?<=[.!?])\s|\n", tool_spec.description.strip(), maxsplit=1)[0].strip()
-            if tool_description:
-                tool_lines.append(f"{index}. {tool_name}: {tool_description}")
-            else:
-                tool_lines.append(f"{index}. {tool_name}")
-
-        reminder_lines = [
-            "<system-reminder>",
-            "以下工具当前未直接暴露给你，但可以通过 tool_search 工具发现并在后续轮次中使用：",
-            *tool_lines,
-            "</system-reminder>",
-        ]
-        return "\n".join(reminder_lines)
+        """不向 Planner 注入 deferred 目錄；工具仍可由 tool_search 搜尋。"""
+        return ""
 
     def search_deferred_tool_specs(
         self,

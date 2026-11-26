@@ -70,7 +70,7 @@ async def test_search_keeps_top_level_tools_and_directory_stable_across_rounds()
     engine._turn_passive_replyer = False
     before, directory = await engine._build_action_tool_definitions()
     assert [tool["name"] for tool in before] == ["tool_search"]
-    assert "plugin_query" in directory
+    assert directory == "", "Planner 不再接收 deferred 工具目錄"
     result = await handle_tool(BuiltinToolRuntimeContext(engine, chat), ToolInvocation(tool_name="tool_search", arguments={"query": "plugin_query"}))
     append_search(chat, result)
     after, next_directory = await engine._build_action_tool_definitions()
@@ -183,13 +183,10 @@ def test_old_native_search_history_is_only_replayed_as_plain_function():
     assert wire == [{"type": "function_call", "call_id": "old-search", "name": "tool_search", "arguments": '{"query":"plugin_query"}'}]
 
 
-def test_deferred_tool_directory_lists_only_the_first_sentence():
+def test_deferred_tool_directory_is_not_injected_into_planner():
     chat = runtime()
     chat.deferred_tool_specs_by_name = {
-        "discord_message_delete": replace(plugin_spec(), name="discord_message_delete", description="刪除自己發出的一則訊息；只能刪自己的發言。（删除消息、撤回）"),
-        "plugin_edit": replace(plugin_spec(), name="plugin_edit", description="Edit a message. Only your own.\nkeywords: edit"),
+        "discord_message_delete": replace(plugin_spec(), name="discord_message_delete", description="刪除自己發出的一則訊息；只能刪自己的發言。"),
     }
-    reminder = chat.build_deferred_tools_reminder()
-    assert "1. discord_message_delete: 刪除自己發出的一則訊息；只能刪自己的發言。\n" in reminder
-    assert "2. plugin_edit: Edit a message.\n" in reminder
-    assert "撤回" not in reminder and "keywords" not in reminder, "給 tool_search 比對的關鍵詞不進系統提示詞"
+    assert chat.build_deferred_tools_reminder() == ""
+    assert chat.search_deferred_tool_specs("discord_message_delete", limit=5), "搜尋工具的能力仍須保留"
