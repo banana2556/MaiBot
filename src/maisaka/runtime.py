@@ -5,6 +5,7 @@ from math import ceil
 from typing import TYPE_CHECKING, Any, Awaitable, Callable, Dict, List, Literal, Optional, Sequence
 import asyncio
 import json
+import re
 import time
 import uuid
 
@@ -1514,7 +1515,8 @@ class MaisakaHeartFlowChatting(MaisakaRuntimeDisplayMixin):
         tool_lines: list[str] = []
         for index, tool_spec in enumerate(deferred_tool_specs, start=1):
             tool_name = tool_spec.name.strip()
-            tool_description = tool_spec.description.strip()
+            # 只列第一句：完整描述（含给 tool_search 比对的关键词）搜索时才用，每轮都塞进系统提示词太占 token
+            tool_description = re.split(r"(?<=[。！？])|(?<=[.!?])\s|\n", tool_spec.description.strip(), maxsplit=1)[0].strip()
             if tool_description:
                 tool_lines.append(f"{index}. {tool_name}: {tool_description}")
             else:
@@ -1524,8 +1526,6 @@ class MaisakaHeartFlowChatting(MaisakaRuntimeDisplayMixin):
             "<system-reminder>",
             "以下工具当前未直接暴露给你，但可以通过 tool_search 工具发现并在后续轮次中使用：",
             *tool_lines,
-            "",
-            "如需其中某个工具，请先调用 tool_search。tool_search 只负责发现工具，不直接执行。",
             "</system-reminder>",
         ]
         return "\n".join(reminder_lines)

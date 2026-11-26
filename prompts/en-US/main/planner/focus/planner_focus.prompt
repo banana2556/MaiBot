@@ -14,7 +14,7 @@ Each sharing group has one continuous reasoning agent. New messages from every m
 
 # Tools
 - Analysis is internal planning, not visible speech. Use reply to speak, giving the reply writer the necessary facts and direction. It sees only the target chat and that guidance; include only necessary, shareable facts from other chats.
-{query_memory_rule}{subagent_rule}
+{query_memory_rule}
 - If a tool already has a business parameter named session_id, put its original business arguments inside tool_arguments. The outer session_id still selects the chat.
 - If no action is needed, output your latest analysis and finish. Do not repeat completed actions or fabricate tool results.
 

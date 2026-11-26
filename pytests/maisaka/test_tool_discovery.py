@@ -181,3 +181,15 @@ def test_old_native_search_history_is_only_replayed_as_plain_function():
     request = ResponseRequest(model_info=ModelInfo(name="model", model_type="llm", model_identifier="model", api_provider="provider"), context_items=[call])
     wire = _convert_context_items([call], request, "provider", "https://example.test")
     assert wire == [{"type": "function_call", "call_id": "old-search", "name": "tool_search", "arguments": '{"query":"plugin_query"}'}]
+
+
+def test_deferred_tool_directory_lists_only_the_first_sentence():
+    chat = runtime()
+    chat.deferred_tool_specs_by_name = {
+        "discord_message_delete": replace(plugin_spec(), name="discord_message_delete", description="刪除自己發出的一則訊息；只能刪自己的發言。（删除消息、撤回）"),
+        "plugin_edit": replace(plugin_spec(), name="plugin_edit", description="Edit a message. Only your own.\nkeywords: edit"),
+    }
+    reminder = chat.build_deferred_tools_reminder()
+    assert "1. discord_message_delete: 刪除自己發出的一則訊息；只能刪自己的發言。\n" in reminder
+    assert "2. plugin_edit: Edit a message.\n" in reminder
+    assert "撤回" not in reminder and "keywords" not in reminder, "給 tool_search 比對的關鍵詞不進系統提示詞"

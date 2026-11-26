@@ -863,7 +863,6 @@ class MaisakaChatLoopService:
             "private_chat_attention_block": self._build_chat_attention_block(),
             "planner_idle_focus_rule": self._build_planner_idle_focus_rule(),
             "query_memory_rule": self._build_query_memory_rule(),
-            "subagent_rule": self._build_subagent_rule(),
         }
 
     @staticmethod
@@ -907,13 +906,6 @@ class MaisakaChatLoopService:
     def _build_query_memory_rule(self) -> str:
         """按当前聊天类型构造记忆检索提示。"""
         return self._scene_prompts.query_memory_rule()
-
-    def _build_subagent_rule(self) -> str:
-        """开启子代理时说明何时该把任务交给 subagent；未开启时为空，不占提示词。"""
-
-        if not global_config.capabilities.planner_subagent:
-            return ""
-        return "\n" + load_prompt("planner_subagent_policy").strip()
 
     def _build_current_chat_attention_tail_message(self) -> str:
         """构建追加到请求末尾的当前聊天专属注意事项。"""
