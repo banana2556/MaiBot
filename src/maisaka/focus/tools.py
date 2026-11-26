@@ -190,14 +190,8 @@ class FocusToolRouter:
         return definitions
 
     def deferred_notice(self) -> str:
-        session_ids = {sid for sid, runtime in self.group.members.items() if self.group.is_member_valid(runtime)}
-        lines = [
-            f"- {name}: {route.spec.description}"
-            + (f" (session_ids={','.join(route.variants)})" if set(route.variants) != session_ids else "")
-            for name, route in self.routes.items()
-            if not self.is_default_visible(route.spec)
-        ]
-        return "<deferred_tools>\n" + "\n".join(lines) + "\n</deferred_tools>" if lines else ""
+        """Focus 共享 Planner 不注入 deferred 工具目錄；tool_search 仍可使用。"""
+        return ""
 
     async def invoke(
         self,

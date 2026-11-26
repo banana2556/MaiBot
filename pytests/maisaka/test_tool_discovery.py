@@ -154,6 +154,7 @@ async def test_focus_search_routes_target_and_keeps_definitions_stable():
     before = deepcopy(router.definitions())
     assert [tool["name"] for tool in before] == ["tool_search"]
     notice = router.deferred_notice()
+    assert notice == ""
     _, result, _, _ = await router.invoke("tool_search", {"query": "plugin_query", "session_id": chat.session_id}, "search", "")
     schema = json.loads(result.get_history_content())["tools"][0]["parameters"]
     assert schema["properties"]["session_id"]["enum"] == [chat.session_id]
